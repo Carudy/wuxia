@@ -1,46 +1,49 @@
-from pathlib import Path
 from components import *
 
-class GameInstance():
-	def __init__(self, width=768, height=600):
-		# display
-		pygame.display.init()
-		# pygame.display.set_caption("Game")
-		# os.environ["SDL_VIDEO_WINDOW_POS"] = "%d, %d" % (280, 120)
-		pygame.init()
-		# pygame.mixer.pre_init(44100, 16, 2, 4096)
-		self.size       =   (width, height)
-		self.screen     =   pygame.display.set_mode(self.size, 0, 32)
-		self.clock      =   pygame.time.Clock()
-		self.map  		=	TileMap()
-		self.btns 		=   [
-			Button(size=(100, 40), txt='更换地图')
-		]
 
-		self.run_list	= [self.map, self.btns]
-
-	def recurve_run(self, x):
-		if isinstance(x, list):
-			for mono in x: self.recurve_run(mono)
-		else:
-			x.run(self)
-
-	def run(self):
-		self.timep = self.clock.tick(60)
-		self.keyp    =  pygame.key.get_pressed()
-		self.moup    =  pygame.mouse.get_pressed()
-		self.mou_pos =  pygame.mouse.get_pos()
-		self.recurve_run(self.run_list)
+def test(G):
+    G.xm.pos[0] += 5
 
 
-G = GameInstance()
-#******************************** loop ***************************************************
-if __name__ == '__main__': 
-	# main loop
-	while True:
-		for event in pygame.event.get():
-			if event.type == QUIT:
-				exit()
+class GameInstance:
+    def __init__(self, width=960, height=600):
+        # display
+        pygame.display.init()
+        # pygame.display.set_caption("Game")
+        # os.environ["SDL_VIDEO_WINDOW_POS"] = "%d, %d" % (280, 120)
+        pygame.init()
+        # pygame.mixer.pre_init(44100, 16, 2, 4096)
+        self.size = (width, height)
+        self.screen = pygame.display.set_mode(self.size, 0, 32)
+        self.clock = pygame.time.Clock()
+        self.animations = AnimationList(src='resource/animation/effect-png')
 
-		G.run()
-		pygame.display.update()
+        self.map = TileMap()
+        self.xm = Character('resource/character/xiami', pos=[100, 100])
+        self.map.add_item(self.xm)
+
+        self.items = [
+            Button(size=(100, 40), txt='更换', pos=[0, 500], callback=test, key='z'),
+            Animation('attack', (100, 100)),
+        ]
+
+    def run(self):
+        self.timep = self.clock.tick(60)
+        self.keyp = pygame.key.get_pressed()
+        self.moup = pygame.mouse.get_pressed()
+        self.mou_pos = pygame.mouse.get_pos()
+
+        self.map.run(self)
+        self.items = [i for i in self.items if i.run(self)]
+
+
+# ******************************** loop ***************************************************
+if __name__ == '__main__':
+    G = GameInstance()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+
+        G.run()
+        pygame.display.update()
