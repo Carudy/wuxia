@@ -1,12 +1,8 @@
 from components import *
 
 
-def test(G):
-    G.xm.pos[0] += 5
-
-
 class GameInstance:
-    def __init__(self, width=960, height=600):
+    def __init__(self, width=980, height=800):
         # display
         pygame.display.init()
         # pygame.display.set_caption("Game")
@@ -15,15 +11,25 @@ class GameInstance:
         # pygame.mixer.pre_init(44100, 16, 2, 4096)
         self.size = (width, height)
         self.screen = pygame.display.set_mode(self.size, 0, 32)
+        self.screen.fill((23, 19, 11))
         self.clock = pygame.time.Clock()
-        self.animations = AnimationList(src='resource/animation/effect-png')
+        self.animations = AnimationList(src=ani_path / 'effect-png')
 
-        self.map = TileMap()
-        self.xm = Character('resource/character/xiami', pos=[100, 100])
-        self.map.add_item(self.xm)
+        self.map = TileMap(pos=(10, 100))
+        self.heroes = [
+            Character(cha_path / 'xiami', pos=[100, 100])
+        ]
+        for hero in self.heroes:
+            self.map.add_item(hero, cor=[2, 2])
+
+        self.now_player = 0
+        self.players = [
+            Player(),
+        ]
 
         self.items = [
-            Button(size=(100, 40), txt='更换', pos=[0, 500], callback=test, key='z'),
+            TopBar(pos=(10, 5), size=(960, 90)),
+            BottomBar(pos=(10, 590), size=(960, 200)),
             Animation('attack', (100, 100)),
         ]
 
@@ -35,15 +41,16 @@ class GameInstance:
 
         self.map.run(self)
         self.items = [i for i in self.items if i.run(self)]
+        self.heroes = [i for i in self.heroes if i.run(self)]
 
 
 # ******************************** loop ***************************************************
 if __name__ == '__main__':
-    G = GameInstance()
+    gi = GameInstance()
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit()
 
-        G.run()
+        gi.run()
         pygame.display.update()

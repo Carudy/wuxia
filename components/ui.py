@@ -2,6 +2,8 @@ import pygame, re, random
 from pathlib import Path
 from collections import defaultdict
 
+from .path import *
+
 
 def load_img(file, size=None):
     if size is None:
@@ -10,8 +12,8 @@ def load_img(file, size=None):
 
 
 class Button:
-    def __init__(self, img_src=None, txt=None, pos=(0, 0),
-                 size=None, key=None, callback=None, para=None):
+    def __init__(self, img_src=None, txt=None, pos=(0, 0), visible=True,
+                 size=None, key=None, callback=None, para=None, back=None):
         self.callback, self.para = callback, para
         self.size = size
         self.pos = pos
@@ -19,48 +21,55 @@ class Button:
         if key is not None:
             self.key = ord(self.key)
 
-        if img_src is not None:
-            self.img = load_img(img_src, size)
-        elif size is not None:
-            self.img = pygame.Surface(size).convert_alpha()
-            self.img.fill((120, 140, 160))
-        else:
-            self.img = None
+        self.visible = visible
+        self.img = None
+        self.back = back
+        if visible:
+            if img_src is not None:
+                self.img = load_img(img_src, size)
+            elif size is not None:
+                self.img = pygame.Surface(size).convert_alpha()
+                self.img.fill((120, 140, 160))
+            else:
+                self.img = None
 
-        if self.img is not None:
-            self.hover_sur = pygame.Surface(size).convert_alpha()
-            self.hover_sur.fill((180, 170, 160, 66))
+            if self.img is not None:
+                self.hover_sur = pygame.Surface(size).convert_alpha()
+                self.hover_sur.fill((180, 170, 160, 66))
 
+        self.txt = txt
         if txt is not None:
-            self.txt = txt
             self.cont = Label(txt, size=int(size[1] * 0.8), pos=(pos[0] + 2, pos[1]))
         self.cd = 0
         self.in_click = False
 
     def is_hover(self, mou_pos):
-        _ok = self.pos[0] < mou_pos[0] < self.pos[0] + self.size[0]
-        return _ok & (self.pos[1] < mou_pos[1] < self.pos[1] + self.size[1])
+        ox, oy = self.back.pos if self.back is not None else (0, 0)
+        _ok = self.pos[0] + ox < mou_pos[0] < self.pos[0] + self.size[0] + ox
+        return _ok & (self.pos[1] + oy < mou_pos[1] < self.pos[1] + self.size[1] + oy)
 
     def is_click(self, mou_pos, moup, keyp):
         if self.key is not None and keyp[self.key]: return True
         return moup[0] and self.is_hover(mou_pos)
 
-    def run(self, G):
-        self.cd = max(0, self.cd - G.timep)
-        if self.cd <= 0 and self.is_click(G.mou_pos, G.moup, G.keyp) and self.callback is not None:
+    def run(self, gi):
+        # react
+        self.cd = max(0, self.cd - gi.timep)
+        if self.cd <= 0 and self.is_click(gi.mou_pos, gi.moup, gi.keyp) and self.callback is not None:
             if not self.in_click:
                 if self.para is not None:
-                    self.callback(G, **self.para)
+                    self.callback(gi, params=self.para)
                 else:
-                    self.callback(G)
+                    self.callback(gi)
                 self.cd = 100
                 self.in_click = True
         else:
             self.in_click = False
-        if self.img is not None:
-            G.screen.blit(self.img, self.pos)
-            if self.is_hover(G.mou_pos): G.screen.blit(self.hover_sur, self.pos)
-            if self.cont: self.cont.run(G)
+        # draw
+        if self.visible and self.img is not None and self.back is not None:
+            self.back.screen.blit(self.img, self.pos)
+            if self.is_hover(gi.mou_pos): self.back.screen.blit(self.hover_sur, self.pos)
+            if self.txt is not None: self.cont.run(gi)
         return True
 
 
@@ -100,14 +109,14 @@ class Animation:
         self.looped = 0
         self.t = 0
 
-    def run(self, G):
-        if self.fid >= G.animations[self.name].n:
+    def run(self, gi):
+        if self.fid >= gi.animations[self.name].n:
             self.looped += 1
             self.fid = 0
             if 0 < self.loop <= self.looped:
                 return False
-        G.screen.blit(G.animations[self.name][self.fid], self.pos)
-        self.t += G.timep
+        gi.screen.blit(gi.animations[self.name][self.fid], self.pos)
+        self.t += gi.timep
         if self.t >= self.spf:
             self.t %= self.spf
             self.fid += 1
@@ -125,8 +134,8 @@ class Label:
     def set(self, txt):
         self.cont = self.font.render(txt, True, self.color)
 
-    def run(self, G):
-        G.screen.blit(self.cont, self.pos)
+    def run(self, gi):
+        gi.screen.blit(self.cont, self.pos)
 
 
 class Label_row():
@@ -143,6 +152,6 @@ class Label_row():
     def set_pos(self, px, py):
         self.px, self.py = px, py
 
-    def run(self, G):
+    def run(self, gi):
         for i in range(len(self.lines)):
-            G.screen.blit(self.lines[i], (self.px, self.py + (self.font_size * 1.23) * i))
+            gi.screen.blit(self.lines[i], (self.px, self.py + (self.font_size * 1.23) * i))
