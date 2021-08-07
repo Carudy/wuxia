@@ -13,14 +13,14 @@ class GameInstance:
         self.screen = pygame.display.set_mode(self.size, 0, 32)
         self.screen.fill((23, 19, 11))
         self.clock = pygame.time.Clock()
-        self.animations = AnimationList(src=ani_path / 'effect-png')
 
         self.map = TileMap(pos=(10, 100))
         self.heroes = [
-            Character(cha_path / 'xiami', pos=[100, 100])
+            Character(cha_path / '小虾米', back=self.map),
+            Character(cha_path / '石破天', back=self.map),
         ]
-        for hero in self.heroes:
-            self.map.add_item(hero, cor=[2, 2])
+        for i, hero in enumerate(self.heroes):
+            self.map.add_item(hero, cor=[i + 2, i + 2])
 
         self.now_player = 0
         self.players = [
@@ -28,9 +28,8 @@ class GameInstance:
         ]
 
         self.items = [
-            TopBar(pos=(10, 5), size=(960, 90)),
-            BottomBar(pos=(10, 590), size=(960, 200)),
-            Animation('attack', (100, 100)),
+            TopBar(pos=(10, 5), size=(960, 90), back=self),
+            BottomBar(pos=(10, 590), size=(960, 200), back=self),
         ]
 
     def run(self):

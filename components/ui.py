@@ -1,7 +1,7 @@
 import pygame, re, random
 from pathlib import Path
 from collections import defaultdict
-
+from .callbacks import *
 from .path import *
 
 
@@ -12,8 +12,8 @@ def load_img(file, size=None):
 
 
 class Button:
-    def __init__(self, img_src=None, txt=None, pos=(0, 0), visible=True,
-                 size=None, key=None, callback=None, para=None, back=None):
+    def __init__(self, img_src=None, txt=None, pos=[0, 0], visible=True,
+                 size=(0, 0), key=None, callback=None, para=None, back=None):
         self.callback, self.para = callback, para
         self.size = size
         self.pos = pos
@@ -24,10 +24,11 @@ class Button:
         self.visible = visible
         self.img = None
         self.back = back
+        self.txt = txt
         if visible:
             if img_src is not None:
                 self.img = load_img(img_src, size)
-            elif size is not None:
+            elif size[0] > 0:
                 self.img = pygame.Surface(size).convert_alpha()
                 self.img.fill((120, 140, 160))
             else:
@@ -37,9 +38,11 @@ class Button:
                 self.hover_sur = pygame.Surface(size).convert_alpha()
                 self.hover_sur.fill((180, 170, 160, 66))
 
-        self.txt = txt
-        if txt is not None:
-            self.cont = Label(txt, size=int(size[1] * 0.8), pos=(pos[0] + 2, pos[1]))
+                if txt is not None:
+                    cont = Label(txt, size=int(size[1] * 0.75))
+                    _size = cont.cont.get_size()
+                    self.img.blit(cont.cont, (0.5 * (self.size[0] - _size[0]), 0))
+
         self.cd = 0
         self.in_click = False
 
@@ -69,7 +72,6 @@ class Button:
         if self.visible and self.img is not None and self.back is not None:
             self.back.screen.blit(self.img, self.pos)
             if self.is_hover(gi.mou_pos): self.back.screen.blit(self.hover_sur, self.pos)
-            if self.txt is not None: self.cont.run(gi)
         return True
 
 
@@ -88,9 +90,11 @@ class AnimationBase:
 class AnimationList:
     def __init__(self, src):
         self.animations = {}
+        self.sizes = {}
         for ani in Path(src).iterdir():
             if ani.is_dir() and ani.stem[0].isalpha():
                 self.animations[ani.stem] = AnimationBase(ani)
+                self.sizes[ani.stem] = self.animations[ani.stem][0].get_size()
 
     def __len__(self):
         return len(self.animations)
@@ -99,8 +103,11 @@ class AnimationList:
         return self.animations[idx]
 
 
+animation_list = AnimationList(src=ani_path / 'effect-png')
+
+
 class Animation:
-    def __init__(self, name, pos, loop=1, fps=12):
+    def __init__(self, name, back, pos=(0, 0), loop=1, fps=18):
         self.name = name
         self.fid = 0
         self.pos = pos
@@ -108,19 +115,27 @@ class Animation:
         self.loop = loop
         self.looped = 0
         self.t = 0
+        self.back = back
+        self.size = animation_list[name][0].get_size()
 
     def run(self, gi):
-        if self.fid >= gi.animations[self.name].n:
+        if self.fid >= animation_list[self.name].n:
             self.looped += 1
             self.fid = 0
             if 0 < self.loop <= self.looped:
                 return False
-        gi.screen.blit(gi.animations[self.name][self.fid], self.pos)
+        self.back.screen.blit(animation_list[self.name][self.fid], self.pos)
         self.t += gi.timep
         if self.t >= self.spf:
             self.t %= self.spf
             self.fid += 1
         return True
+
+    def __le__(self, other):
+        return self.pos[1] <= other.pos[1]
+
+    def __lt__(self, other):
+        return self.pos[1] < other.pos[1]
 
 
 class Label:

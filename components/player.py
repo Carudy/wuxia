@@ -12,6 +12,7 @@ class Player:
         }
 
     def act(self, gi, params):
+        print(self.action)
         if self.action in self.action_dict:
             return self.action_dict[self.action](gi, params)
 
@@ -22,8 +23,9 @@ class Player:
         for i, hero in enumerate(gi.heroes):
             if tuple(hero.map_cor) == tuple(params['cor']):
                 self.selected_hero = i
-                self.action = 'move'
-                break
+                self.action = 'attack'
+                return
+        self.selected_hero = None
 
     def move(self, gi, params):
         if self.selected_hero is None: return
@@ -36,8 +38,8 @@ class Player:
     def attack(self, gi, params):
         if self.selected_hero is None: return
         hero = gi.heroes[self.selected_hero]
-        pos = gi.map.cor2pos(params['cor'], hero.size)
+        hero.direction = 0 if params['cor'][1] >= hero.map_cor[1] else 1
+        gi.map.add_item(Animation(name='attack', back=gi.map), cor=params['cor'])
         hero.animate('attack')
         gi.map.selected = False
         self.action = 'select'
-

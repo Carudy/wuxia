@@ -2,11 +2,13 @@ from .parts import *
 
 
 class Character:
-    def __init__(self, src, pos=[0, 0], size=None, fps=12):
+    def __init__(self, src, back, pos=[0, 0], size=None, fps=10):
         src = Path(src)
+        self.name = src.stem
         self.imgs = {
             'stand': load_img(src / 'stand.png')
         }
+        self.head = load_img(src / 'head.jpg', (120, 120))
         for folder in src.iterdir():
             if folder.is_dir():
                 self.imgs[folder.stem] = AnimationBase(folder, size)
@@ -22,9 +24,10 @@ class Character:
         self.t = 0
         self.moving = False
         self.tar_pos = None
-        self.speed = 0.25
+        self.speed = 0.15
         self.direction = 0
         self.map_cor = None
+        self.back = back
 
         # -1 for no-camp
         self.camp = -1
@@ -37,6 +40,12 @@ class Character:
         if self.direction == 1:
             return pygame.transform.flip(ret, True, False)
         return ret
+
+    def __le__(self, other):
+        return self.pos[1] <= other.pos[1]
+
+    def __lt__(self, other):
+        return self.pos[1] < other.pos[1]
 
     def animate(self, name):
         if self.status == name: return
@@ -73,4 +82,5 @@ class Character:
     def run(self, gi):
         self.handle_animation(gi)
         self.move(gi)
+        self.back.screen.blit(self.img, self.pos)
         return True

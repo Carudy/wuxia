@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+import pygame
+
 from .ui import *
 
 
@@ -9,32 +11,48 @@ def drt(x):
     return 0
 
 
-class TopBar:
-    def __init__(self, size=(960, 80), pos=(0, 0)):
+class BaseBar:
+    def __init__(self, size, color, back, pos=(0, 0)):
         self.size = size
         self.pos = pos
-        self.img = pygame.Surface(size).convert_alpha()
-        self.img.fill((123, 125, 112))
+        self.screen = pygame.Surface(self.size).convert_alpha()
+        self.screen.fill(color)
+        self.back = back
+        self.items = []
+
+    def before(self, gi):
+        pass
 
     def run(self, gi):
-        gi.screen.blit(self.img, self.pos)
-
-
-class BottomBar:
-    def __init__(self, size=(960, 100), pos=(0, 0)):
-        self.size = size
-        self.pos = pos
-        self.screen = pygame.Surface(size).convert_alpha()
-        self.screen.fill((103, 105, 102))
-        self.items = [
-            Button(pos=[10, 10], size=(100, 40), txt='更换', key='z', back=self),
-        ]
-
-    def run(self, gi):
-        for i in self.items:
-            i.run(gi)
-        gi.screen.blit(self.screen, self.pos)
+        self.before(gi)
+        for i in self.items: i.run(gi)
+        self.back.screen.blit(self.screen, self.pos)
         return True
+
+
+class TopBar(BaseBar):
+    def __init__(self, size, pos, back):
+        super(TopBar, self).__init__(size=size, pos=pos, back=back, color=(123, 125, 112))
+
+
+class SelectedBar(BaseBar):
+    def __init__(self, size, pos, back):
+        super(SelectedBar, self).__init__(size=size, pos=pos, color=(165, 154, 61), back=back)
+
+    def before(self, gi):
+        hero = gi.players[gi.now_player].selected_hero
+        if hero is not None:
+            hero = gi.heroes[hero]
+            self.screen.blit(hero.head, (4, 4))
+
+
+class BottomBar(BaseBar):
+    def __init__(self, size=(960, 100), pos=(0, 0), back=None):
+        super(BottomBar, self).__init__(size=size, pos=pos, back=back, color=(103, 105, 102))
+        self.items = [
+            SelectedBar(size=(size[0] * 0.25, size[1] * 0.9), pos=(5, size[1] * 0.05), back=self),
+            Button(visible=False, key='z', back=self, callback=test),
+        ]
 
 
 class Sound:
